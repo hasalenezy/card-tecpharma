@@ -71,6 +71,9 @@ body {
   width: 340px;
   perspective: 1200px;
   cursor: pointer;
+  touch-action: none;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
 }
 
 .card {
@@ -468,34 +471,48 @@ body {
 <script>
 const card = document.getElementById('card');
 const wrapper = document.querySelector('.card-wrapper');
+let isPointerDown = false;
+let pointerMoved = false;
+let startX = 0, startY = 0;
 
-// Mobile: touchstart/touchend
-let tStart = 0;
-wrapper.addEventListener('touchstart', function(e){
-  tStart = Date.now();
-}, false);
+wrapper.addEventListener('pointerdown', function(e){
+  isPointerDown = true;
+  pointerMoved = false;
+  startX = e.clientX;
+  startY = e.clientY;
+});
 
-wrapper.addEventListener('touchend', function(e){
-  e.preventDefault();
-  if(Date.now() - tStart < 300){
-    card.classList.toggle('flipped');
+wrapper.addEventListener('pointermove', function(e){
+  if(!isPointerDown) return;
+  const dx = Math.abs(e.clientX - startX);
+  const dy = Math.abs(e.clientY - startY);
+  if(dx > 5 || dy > 5) pointerMoved = true;
+  // Desktop tilt
+  if(e.pointerType === 'mouse' && !card.classList.contains('flipped')){
+    const r = wrapper.getBoundingClientRect();
+    const x = (e.clientX - r.left) / r.width - 0.5;
+    const y = (e.clientY - r.top) / r.height - 0.5;
+    card.style.transform = 'rotateY('+x*12+'deg) rotateX('+(-y*8)+'deg)';
   }
-}, false);
-
-// Desktop: click + tilt
-wrapper.addEventListener('click', function(){
-  card.classList.toggle('flipped');
 });
 
-wrapper.addEventListener('mousemove', function(e){
-  if(card.classList.contains('flipped')) return;
-  const r = wrapper.getBoundingClientRect();
-  const x = (e.clientX - r.left) / r.width - 0.5;
-  const y = (e.clientY - r.top) / r.height - 0.5;
-  card.style.transform = 'rotateY('+x*12+'deg) rotateX('+(-y*8)+'deg)';
+wrapper.addEventListener('pointerup', function(e){
+  if(isPointerDown && !pointerMoved){
+    card.classList.toggle('flipped');
+    if(card.classList.contains('flipped')){
+      card.style.transform = '';
+    }
+  }
+  isPointerDown = false;
 });
-wrapper.addEventListener('mouseleave', function(){
+
+wrapper.addEventListener('pointerleave', function(){
+  isPointerDown = false;
   if(!card.classList.contains('flipped')) card.style.transform = '';
+});
+
+wrapper.addEventListener('pointercancel', function(){
+  isPointerDown = false;
 });
 </script>
 </body>
